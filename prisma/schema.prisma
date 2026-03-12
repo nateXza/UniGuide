@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Institution {
+  id             Int      @id @default(autoincrement())
+  name           String
+  abbr           String?
+  city           String
+  province       String
+  type           String
+  category       String?
+  rank           Int?
+  tuition        Int
+  logo           String?
+  logoUrl        String?
+  color          String?
+  courses        String   @default("[]")
+  acceptance     Int?
+  founded        Int?
+  students       Int?
+  description    String?
+  website        String?
+  applyUrl       String?
+  aps            Int?
+  admissionDates String?
+  createdAt      DateTime @default(now())
+}
+
+model Bursary {
+  id        Int      @id @default(autoincrement())
+  name      String
+  type      String
+  amount    String
+  criteria  String
+  fields    String   @default("[]")
+  deadline  String
+  logo      String?
+  provider  String?
+  level     String?
+  province  String?
+  website   String?
+  closingSoon Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AssessmentResult {
+  id         Int      @id @default(autoincrement())
+  sessionId  String   @unique
+  scores     String
+  topType    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model SavedCV {
+  id        Int      @id @default(autoincrement())
+  sessionId String   @unique
+  template  String?
+  data      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resource {
+  id        Int      @id @default(autoincrement())
+  category  String
+  name      String
+  emoji     String?
+  value     String
+  how       String?
+  link      String
+  tags      String   @default("[]")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
