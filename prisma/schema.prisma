@@ -3,8 +3,26 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("user") // "user" or "admin"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // e.g. "UPDATE_USER_ROLE", "DELETE_INSTITUTION"
+  details   String?  // JSON stringified payload
+  createdAt DateTime @default(now())
 }
 
 model Institution {
@@ -30,6 +48,9 @@ model Institution {
   aps            Int?
   admissionDates String?
   createdAt      DateTime @default(now())
+
+  @@index([province])
+  @@index([type])
 }
 
 model Bursary {
@@ -47,6 +68,9 @@ model Bursary {
   website   String?
   closingSoon Boolean @default(false)
   createdAt DateTime @default(now())
+
+  @@index([province])
+  @@index([level])
 }
 
 model AssessmentResult {

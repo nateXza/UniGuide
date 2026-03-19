@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { saveAs } from 'file-saver';
 import { CV_TEMPLATES, EMPTY_CV } from '@/lib/constants';
 
 export default function CVBuilderPage() {
@@ -40,6 +40,9 @@ export default function CVBuilderPage() {
         if (!pdfRef.current) return;
         setIsGenerating(true);
         try {
+            // Dynamically load html2canvas to save bundle size
+            const html2canvas = (await import('html2canvas')).default;
+
             // temporarily remove box-shadow for clean PDF
             const origBoxShadow = pdfRef.current.style.boxShadow;
             pdfRef.current.style.boxShadow = 'none';
@@ -62,6 +65,95 @@ export default function CVBuilderPage() {
         } catch (error) {
             console.error('Failed to generate PDF', error);
             alert('Failed to generate PDF. Please try again.');
+        }
+        setIsGenerating(false);
+    };
+
+    const downloadWord = async () => {
+        setIsGenerating(true);
+        try {
+            // Dynamically load DOCX to save massive bundle size
+            const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
+
+            const docChildren = [
+                new Paragraph({
+                    text: cv.name || 'Your Name',
+                    heading: HeadingLevel.TITLE,
+                    spacing: { after: 200 }
+                }),
+                new Paragraph({
+                    children: [
+                        new TextRun({ text: cv.email ? `Email: ${cv.email}   ` : '' }),
+                        new TextRun({ text: cv.phone ? `Phone: ${cv.phone}   ` : '' }),
+                        new TextRun({ text: cv.city ? `City: ${cv.city}   ` : '' })
+                    ],
+                    spacing: { after: 400 }
+                })
+            ];
+
+            if (cv.objective) {
+                docChildren.push(new Paragraph({ text: 'Professional Profile', heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 100 } }));
+                docChildren.push(new Paragraph({ text: cv.objective, spacing: { after: 400 } }));
+            }
+
+            if (cv.education.length > 0 && cv.education.some(e => e.institution)) {
+                docChildren.push(new Paragraph({ text: 'Education', heading: HeadingLevel.HEADING_1, spacing: { after: 100 } }));
+                cv.education.filter(e => e.institution).forEach(e => {
+                    docChildren.push(new Paragraph({
+                        children: [
+                            new TextRun({ text: e.qualification, bold: true }),
+                            new TextRun({ text: ` | ${e.year}` })
+                        ]
+                    }));
+                    docChildren.push(new Paragraph({ text: `${e.institution} ${e.average ? `(Average: ${e.average}%)` : ''}`, spacing: { after: 200 } }));
+                });
+            }
+
+            if (cv.experience.length > 0 && cv.experience.some(e => e.company)) {
+                docChildren.push(new Paragraph({ text: 'Work Experience', heading: HeadingLevel.HEADING_1, spacing: { after: 100 } }));
+                cv.experience.filter(e => e.company).forEach(e => {
+                    docChildren.push(new Paragraph({
+                        children: [
+                            new TextRun({ text: e.role, bold: true }),
+                            new TextRun({ text: ` | ${e.period}` })
+                        ]
+                    }));
+                    docChildren.push(new Paragraph({ text: e.company }));
+                    if (e.duties) {
+                        e.duties.split('\n').filter(d => d.trim()).forEach(duty => {
+                            docChildren.push(new Paragraph({ text: duty.startsWith('•') ? duty : `• ${duty}` }));
+                        });
+                    }
+                    docChildren.push(new Paragraph({ text: '', spacing: { after: 100 } }));
+                });
+            }
+
+            if (cv.skills) {
+                docChildren.push(new Paragraph({ text: 'Skills', heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 100 } }));
+                docChildren.push(new Paragraph({ text: cv.skills, spacing: { after: 400 } }));
+            }
+
+            if (cv.languages) {
+                docChildren.push(new Paragraph({ text: 'Languages', heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 100 } }));
+                docChildren.push(new Paragraph({ text: cv.languages, spacing: { after: 400 } }));
+            }
+
+            if (cv.references) {
+                docChildren.push(new Paragraph({ text: 'References', heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 100 } }));
+                cv.references.split('\n').forEach(line => {
+                    docChildren.push(new Paragraph({ text: line }));
+                });
+            }
+
+            const doc = new Document({
+                sections: [{ properties: {}, children: docChildren }]
+            });
+
+            const blob = await Packer.toBlob(doc);
+            saveAs(blob, `${cv.name ? cv.name.replace(/\s+/g, '_') : 'My_CV'}.docx`);
+        } catch (error) {
+            console.error('Failed to generate Word Doc', error);
+            alert('Failed to generate Word Document. Please try again.');
         }
         setIsGenerating(false);
     };
@@ -123,9 +215,12 @@ export default function CVBuilderPage() {
                 <div style={{ padding: '24px 48px', display: 'flex', gap: 12, borderBottom: '1px solid var(--border)', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button className="btn btn-ghost" onClick={() => setPreview(false)}>← Edit CV</button>
                     <button className="btn btn-primary" onClick={downloadPDF} disabled={isGenerating}>
-                        {isGenerating ? 'Generating PDF...' : '📥 Download as PDF'}
+                        {isGenerating ? 'Generating...' : '📥 Download as PDF'}
                     </button>
-                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>A clean PDF format of your CV</span>
+                    <button className="btn btn-primary" style={{ background: '#2B579A' }} onClick={downloadWord} disabled={isGenerating}>
+                        {isGenerating ? 'Generating...' : '📝 Download as Word'}
+                    </button>
+                    <span style={{ fontSize: 12, color: 'var(--text3)' }}>Choose your preferred format</span>
                 </div>
                 <div ref={pdfRef} style={{ maxWidth: 794, margin: '40px auto', background: 'white', color: '#111', padding: '60px 72px', borderRadius: 4, boxShadow: '0 4px 40px rgba(0,0,0,0.3)', fontFamily: 'Georgia, serif', fontSize: 13, lineHeight: 1.6 }}>
                     <div style={{ borderBottom: '3px solid #003B5C', paddingBottom: 20, marginBottom: 24 }}>

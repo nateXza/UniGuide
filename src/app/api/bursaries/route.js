@@ -8,6 +8,8 @@ export async function GET(req) {
         const field = searchParams.get('field');
         const level = searchParams.get('level');
         const province = searchParams.get('province');
+        const page = parseInt(searchParams.get('page') || '1');
+        const limit = parseInt(searchParams.get('limit') || '50');
 
         const where = {};
         if (type) where.type = type;
@@ -21,7 +23,16 @@ export async function GET(req) {
             data = data.filter(d => d.fields.some(f => f.toLowerCase().includes(field.toLowerCase()) || f === 'All fields'));
         }
 
-        return NextResponse.json({ data, total: data.length });
+        const totalRow = data.length;
+        const totalPages = Math.ceil(totalRow / limit);
+        const paginatedData = data.slice((page - 1) * limit, page * limit);
+
+        return NextResponse.json({ 
+            data: paginatedData, 
+            total: totalRow,
+            page,
+            totalPages
+        });
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch bursaries' }, { status: 500 });
     }

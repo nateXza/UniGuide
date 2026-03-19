@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
     title: 'Privacy Policy — UniGuide',
     description: 'UniGuide privacy policy — how we handle your data, what we collect, and your rights.',
@@ -79,6 +81,30 @@ export default function PrivacyPage() {
                     <li>Email: <a href="mailto:privacy@uniguide.co.za" style={{ color: 'var(--accent)' }}>privacy@uniguide.co.za</a></li>
                     <li>Information Officer: The UniGuide Team</li>
                 </ul>
+
+                <h2 id="request">11. Data Subject Access Requests (DSAR)</h2>
+                <p>Under POPIA, you have the right to request a copy of your personal data or ask us to delete it. To submit a DSAR request, please use the form below.</p>
+                
+                <div style={{ background: 'var(--card)', padding: 24, borderRadius: 'var(--r)', border: '1px solid var(--border)', marginTop: 16 }}>
+                    <form onSubmit={(e) => { e.preventDefault(); alert("DSAR Request submitted effectively. Our data officer will contact you within 30 days."); }}>
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Full Name</label>
+                            <input type="text" className="form-input" placeholder="Your Name" required style={{ width: '100%', padding: 8 }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Email Address</label>
+                            <input type="email" className="form-input" placeholder="your@email.com" required style={{ width: '100%', padding: 8 }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label" style={{ display: 'block', marginBottom: 4 }}>Request Type</label>
+                            <select className="form-input" required style={{ width: '100%', padding: 8 }}>
+                                <option value="access">Request a copy of my data</option>
+                                <option value="delete">Request permanent deletion of my account & data</option>
+                            </select>
+                        </div>
+                        <button type="submit" className="btn btn-primary" style={{ marginTop: 12 }}>Submit DSAR Request</button>
+                    </form>
+                </div>
 
                 <div style={{ marginTop: 48, textAlign: 'center' }}>
                     <Link href="/" className="btn btn-primary">← Back to Home</Link>

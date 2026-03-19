@@ -1,48 +1,66 @@
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+
+const anthropic = createAnthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+});
+
+export const maxDuration = 30;
 
 export async function POST(req) {
     try {
-        const { system, messages } = await req.json();
         const apiKey = process.env.ANTHROPIC_API_KEY;
 
         if (!apiKey || apiKey === 'your-anthropic-api-key-here') {
             return NextResponse.json({
                 error: 'API key not configured',
-                text: '⚠️ **Tutoring service is not yet configured.** The site administrator needs to add a valid Anthropic API key in the `.env` file. In the meantime, you can still browse the CAPS curriculum topics and subjects.\n\nTo set up:\n1. Get an API key from [console.anthropic.com](https://console.anthropic.com)\n2. Add it to your `.env` file as `ANTHROPIC_API_KEY="sk-ant-..."`\n3. Restart the server',
+                text: '⚠️ **Tutoring service is not yet configured.** The site administrator needs to add a valid Anthropic API key in the `.env` file.',
             });
         }
 
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 2000,
-                system,
-                messages,
-            }),
-        });
+        const { system, messages } = await req.json();
 
-        const data = await resp.json();
+        // Server-side validation for file uploads (max 5MB, strict MIME whitelist)
+        const ALLOWED_MIMES = ['application/pdf', 'image/png', 'image/jpeg', 'text/plain'];
+        const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 
-        if (data.error) {
-            const errMsg = data.error.message || 'API error';
-            if (resp.status === 401) {
-                return NextResponse.json({ text: '⚠️ **Invalid API key.** The Anthropic API key is incorrect. Please check the `ANTHROPIC_API_KEY` in your `.env` file.' });
+        for (const msg of messages) {
+            if (Array.isArray(msg.content)) {
+                for (const part of msg.content) {
+                    if (part.type === 'document' || part.type === 'image') {
+                        // Validate Media Type
+                        const mime = part.source?.media_type || part.source?.mime_type;
+                        if (!ALLOWED_MIMES.includes(mime)) {
+                            return NextResponse.json({ error: `Unsupported file type: ${mime}` }, { status: 400 });
+                        }
+                        
+                        // Validate Size (Base64 string size approx: chars * 3/4)
+                        const b64Data = part.source?.data;
+                        if (b64Data) {
+                            const sizeInBytes = (b64Data.length * 3) / 4;
+                            if (sizeInBytes > MAX_BYTES) {
+                                return NextResponse.json({ error: 'File size exceeds 5MB limit' }, { status: 400 });
+                            }
+                        }
+                    }
+                }
             }
-            if (resp.status === 429) {
-                return NextResponse.json({ text: '⏳ **Rate limit reached.** Too many requests. Please wait a moment and try again.' });
-            }
-            return NextResponse.json({ error: errMsg, text: `⚠️ **Service error:** ${errMsg}. Please try again.` });
         }
 
-        const text = data.content?.find(b => b.type === 'text')?.text || 'I\'m here to help. Could you rephrase that?';
-        return NextResponse.json({ text });
+        const result = await generateText({
+            model: anthropic('claude-3-5-sonnet-latest'),
+            system: system || 'You are a helpful tutor.',
+            messages,
+            maxTokens: 1000,
+        });
+
+        return NextResponse.json({ text: result.text });
     } catch (error) {
-        return NextResponse.json({ text: '⚠️ **Connection error.** Could not reach the tutoring service. Please check your internet connection and try again.' });
+        console.error('Tutor API Error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Error communicating with AI Tutor', text: '⚠️ **Service error.** Could not reach the tutoring service. Please try again.' },
+            { status: 500 }
+        );
     }
 }

@@ -29,6 +29,7 @@ export default function Footer() {
                     <h4>Company</h4>
                     <Link href="/about">About UniGuide</Link>
                     <Link href="/privacy">Privacy Policy</Link>
+                    <Link href="/terms">Terms of Service</Link>
                     <a href="mailto:hello@uniguide.co.za">Contact Us</a>
                 </div>
             </div>
