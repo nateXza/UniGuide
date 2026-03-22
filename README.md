@@ -14,7 +14,7 @@ UniGuide is a comprehensive web application designed to help South African stude
 
 - **Framework:** [Next.js 14](https://nextjs.org/) (React 18)
 - **Database ORM:** [Prisma](https://www.prisma.io/)
-- **Database Engine:** SQLite (configured natively for portable development)
+- **Database Engine:** PostgreSQL (Neon-compatible)
 - **PDF Generation:** `html2canvas` & `jspdf`
 
 ## 🚀 Getting Started
@@ -40,10 +40,24 @@ To get a local copy up and running, follow these steps:
    ```
 
 3. **Set up the environment variables**
-   Create a `.env` file in the root directory and add your database URL. (For SQLite, it usually looks like this:)
-   ```env
-   DATABASE_URL="file:./dev.db"
+   Copy the example environment file and update values for your environment:
+   ```bash
+   # macOS/Linux
+   cp .env.example .env
+
+   # Windows PowerShell
+   Copy-Item .env.example .env
    ```
+
+   Required values include:
+   ```env
+   DATABASE_URL="postgresql://<user>:<password>@<host>/<db>?sslmode=require"
+   NEXT_PUBLIC_SITE_URL="http://localhost:3000"
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="<at-least-32-characters>"
+   ```
+
+   > Do not commit real credentials. Keep secrets only in `.env`.
 
 4. **Initialize the Database**
    Push the schema to your database and generate the Prisma Client:
